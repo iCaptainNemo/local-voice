@@ -1,0 +1,12 @@
+{
+  "default": {
+    "voice": null,
+    "backend": "kokoro"
+  },
+  "users": {
+    "456029801812066306": {
+      "voice": "mike-main",
+      "backend": "qwen3"
+    }
+  }
+}

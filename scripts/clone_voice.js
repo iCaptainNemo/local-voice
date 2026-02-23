@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const { spawnSync } = require('child_process');
-const path = require('path');
 const fs = require('fs');
+const { transcribeWithFasterWhisper } = require('../src/services/stt');
 
 function arg(name, dflt = undefined) {
   const i = process.argv.indexOf(`--${name}`);
@@ -79,16 +79,13 @@ async function discordMessage(channelId, account = 'main', content = '') {
 
     const ttsCmd = process.env.LOCAL_QWEN_TTS_CMD || 'tts';
     const soxDir = process.env.LOCAL_SOX_DIR || 'C:/Users/Michaelangelo/AppData/Local/Microsoft/WinGet/Packages/ChrisBagwell.SoX_Microsoft.Winget.Source_8wekyb3d8bbwe/sox-14.4.2';
-    const sttPy = process.env.LOCAL_STT_PYTHON || 'python';
-    const env = { ...process.env, PATH: `${soxDir};${process.env.PATH || ''}`, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' };
+        const env = { ...process.env, PATH: `${soxDir};${process.env.PATH || ''}`, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' };
 
     await discordTyping(channel, account);
-    await discordMessage(channel, account, 'Please hold… transcribing your sample and creating the voice profile.');
+    await discordMessage(channel, account, 'Please holdÃ¢â‚¬Â¦ transcribing your sample and creating the voice profile.');
 
-    const transcribeScript = path.join(__dirname, 'transcribe_faster_whisper.py');
-    const tr = run(sttPy, [transcribeScript, '--input', input], { quiet: true });
-    const raw = (tr.stdout || '').trim();
-    const transcript = raw.split(/\r?\n/).find((l) => l && !l.startsWith('[lang=')) || '';
+    const stt = transcribeWithFasterWhisper({ inputPath: input, run });
+    const transcript = stt.text;
     if (!transcript) throw new Error('No transcript extracted from sample audio; try a clearer 10-30s sample.');
 
     await discordTyping(channel, account);
@@ -98,7 +95,7 @@ async function discordMessage(channelId, account = 'main', content = '') {
 
     const result = { ok: true, voice, transcript };
     console.log(JSON.stringify(result, null, 2));
-    await discordMessage(channel, account, `✅ Voice cloned successfully: \
+    await discordMessage(channel, account, `Ã¢Å“â€¦ Voice cloned successfully: \
 \
 - profile: ${voice}\
 - transcript: "${transcript}"`);
@@ -107,7 +104,9 @@ async function discordMessage(channelId, account = 'main', content = '') {
     console.error(msg);
     const channel = arg('channel');
     const account = arg('account', 'main');
-    await discordMessage(channel, account, `❌ Voice cloning failed: ${msg}`);
+    await discordMessage(channel, account, `Ã¢ÂÅ’ Voice cloning failed: ${msg}`);
     process.exit(1);
   }
 })();
+
+

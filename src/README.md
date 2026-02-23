@@ -1,4 +1,4 @@
-﻿# src/ (plugin transition)
+# src/ (plugin transition)
 
 This directory contains extracted services from the current skill scripts.
 
@@ -9,3 +9,7 @@ This directory contains extracted services from the current skill scripts.
 - `plugin/index.js` - plugin bootstrap entry scaffold
 
 Current scripts in `scripts/` remain the production baseline during migration.
+
+- services/stt.js - transcription orchestration + language metadata parsing
+- plugin/handlers/voiceMessage.js - inbound voice handler scaffold (plugin phase)
+

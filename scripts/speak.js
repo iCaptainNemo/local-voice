@@ -6,6 +6,7 @@ const { readConfig: svcReadConfig, readDiscordToken: svcReadDiscordToken, readTe
 const { resolveLang: svcResolveLang } = require('../src/services/language');
 const { normalizeTargetId: chNormalizeTargetId, parseTelegramTarget: chParseTelegramTarget, sendTyping: chSendTyping, sendPrimaryVoice: chSendPrimaryVoice, sendRegularAudioAttachment: chSendRegularAudioAttachment, sendTextFallback: chSendTextFallback } = require('../src/services/channels');
 const { preflightKokoro: pPreflightKokoro, preflightQwen: pPreflightQwen, synthKokoro: pSynthKokoro, synthQwen: pSynthQwen, encodeToOgg: pEncodeToOgg } = require('../src/services/providers');
+const { preflightCommon: pfCommon } = require('../src/services/preflight');
 const { getUserPreference: vGetUserPreference, resolveVoiceForBackend: vResolveVoiceForBackend } = require('../src/services/voice');
 
 function arg(name, dflt = undefined) {
@@ -141,21 +142,7 @@ function resolveVoiceForBackend(backend, explicitVoice, lang) {
 }
 
 function preflightCommon({ channelKind, channel, account }) {
-  const issues = [];
-  const target = normalizeTargetId(channel);
-  if (!target) issues.push('missing target channel/chat id');
-
-  if (channelKind === 'discord') {
-    const token = readDiscordToken(account);
-    if (!token) issues.push(`missing discord token for account: ${account}`);
-  } else if (channelKind === 'telegram') {
-    const token = readTelegramToken(account);
-    if (!token) issues.push(`missing telegram bot token for account: ${account}`);
-  } else {
-    issues.push(`unsupported channel-kind: ${channelKind}`);
-  }
-
-  if (issues.length) throw new Error(`preflight failed:\n- ${issues.join('\n- ')}`);
+  return pfCommon({ channelKind, channel, account, normalizeTargetId, readDiscordToken, readTelegramToken });
 }
 
 function preflightKokoro() {
@@ -382,6 +369,7 @@ async function sendPrimaryVoice({ channelKind, channelId, account = 'main', oggP
   console.error(e?.message || String(e));
   process.exit(1);
 });
+
 
 
 

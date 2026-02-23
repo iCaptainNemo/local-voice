@@ -5,6 +5,7 @@ const { arg: runtimeArg, run: runtimeRun, exists: runtimeExists } = require('../
 const { readConfig: svcReadConfig, readDiscordToken: svcReadDiscordToken, readTelegramToken: svcReadTelegramToken } = require('../src/services/config');
 const { resolveLang: svcResolveLang } = require('../src/services/language');
 const { normalizeTargetId: chNormalizeTargetId, parseTelegramTarget: chParseTelegramTarget, sendTyping: chSendTyping, sendPrimaryVoice: chSendPrimaryVoice } = require('../src/services/channels');
+const { preflightKokoro: pPreflightKokoro, preflightQwen: pPreflightQwen, synthKokoro: pSynthKokoro, synthQwen: pSynthQwen, encodeToOgg: pEncodeToOgg } = require('../src/services/providers');
 
 function arg(name, dflt = undefined) {
   return runtimeArg(process.argv, name, dflt);
@@ -74,13 +75,7 @@ function normalizeToKokoroLang(raw) {
   return null;
 }
 
-function normalizeToQwenLang(raw) {
-  if (!raw) return null;
-  const v = String(raw).trim().replace('_', '-').toLowerCase();
-  if (v.startsWith('es')) return 'es';
-  if (v.startsWith('en')) return 'en';
-  return null;
-}
+
 
 function readOpenClawLocaleHint() {
   try {
@@ -353,7 +348,7 @@ async function sendPrimaryVoice({ channelKind, channelId, account = 'main', oggP
   }
 
   await sendTyping(channelKind, channel, account);
-  run(pickFfmpeg(), ['-y', '-i', wav, '-c:a', 'libopus', '-b:a', '48k', ogg]);
+  pEncodeToOgg({ wav, ogg, run });
   await sendTyping(channelKind, channel, account);
 
   try {
@@ -385,6 +380,7 @@ async function sendPrimaryVoice({ channelKind, channelId, account = 'main', oggP
   console.error(e?.message || String(e));
   process.exit(1);
 });
+
 
 
 

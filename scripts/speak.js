@@ -6,6 +6,7 @@ const { readConfig: svcReadConfig, readDiscordToken: svcReadDiscordToken, readTe
 const { resolveLang: svcResolveLang } = require('../src/services/language');
 const { normalizeTargetId: chNormalizeTargetId, parseTelegramTarget: chParseTelegramTarget, sendTyping: chSendTyping, sendPrimaryVoice: chSendPrimaryVoice } = require('../src/services/channels');
 const { preflightKokoro: pPreflightKokoro, preflightQwen: pPreflightQwen, synthKokoro: pSynthKokoro, synthQwen: pSynthQwen, encodeToOgg: pEncodeToOgg } = require('../src/services/providers');
+const { getUserPreference: vGetUserPreference, resolveVoiceForBackend: vResolveVoiceForBackend } = require('../src/services/voice');
 
 function arg(name, dflt = undefined) {
   return runtimeArg(process.argv, name, dflt);
@@ -318,7 +319,8 @@ async function sendPrimaryVoice({ channelKind, channelId, account = 'main', oggP
   const ogg = path.join(outDir, `tts-${stamp}.ogg`);
 
   const synthWithBackend = async (selectedBackend) => {
-    const voice = resolveVoiceForBackend(selectedBackend, arg('voice') || pref.voice, lang);
+    const preferred = arg('voice') || (((selectedBackend === 'qwen3' || selectedBackend === 'qwen') && pref.voice) ? pref.voice : undefined);
+    const voice = resolveVoiceForBackend(selectedBackend, preferred, lang);
     if (selectedBackend === 'kokoro') {
       preflightKokoro();
       await sendTyping(channelKind, channel, account);
@@ -380,6 +382,8 @@ async function sendPrimaryVoice({ channelKind, channelId, account = 'main', oggP
   console.error(e?.message || String(e));
   process.exit(1);
 });
+
+
 
 
 

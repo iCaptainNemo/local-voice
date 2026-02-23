@@ -1,22 +1,20 @@
 #!/usr/bin/env node
-const { spawnSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
+const { arg: runtimeArg, run: runtimeRun, exists: runtimeExists } = require('../src/services/runtime');
+const { readConfig: svcReadConfig, readDiscordToken: svcReadDiscordToken, readTelegramToken: svcReadTelegramToken } = require('../src/services/config');
+const { resolveLang: svcResolveLang } = require('../src/services/language');
 
 function arg(name, dflt = undefined) {
-  const i = process.argv.indexOf(`--${name}`);
-  return i >= 0 ? process.argv[i + 1] : dflt;
+  return runtimeArg(process.argv, name, dflt);
 }
 
-function run(cmd, args, { quiet = false, env = undefined } = {}) {
-  const r = spawnSync(cmd, args, { stdio: quiet ? 'pipe' : 'inherit', encoding: 'utf8', env: env || process.env });
-  if (r.status !== 0) throw new Error(`${cmd} failed${quiet && r.stderr ? `: ${r.stderr}` : ''}`);
-  return r;
+function run(cmd, args, opts = {}) {
+  return runtimeRun(cmd, args, opts);
 }
 
 function exists(filePath) {
-  try { return fs.existsSync(filePath); } catch { return false; }
+  return runtimeExists(filePath);
 }
 
 function pickPython() {
@@ -36,18 +34,15 @@ function pickSoxDir() {
 }
 
 function readConfig() {
-  const cfgPath = process.env.OPENCLAW_CONFIG_PATH || `${process.env.USERPROFILE}\\.openclaw\\openclaw.json`;
-  return JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+  return svcReadConfig();
 }
 
 function readDiscordToken(account = 'main') {
-  const cfg = readConfig();
-  return cfg?.channels?.discord?.accounts?.[account]?.token || null;
+  return svcReadDiscordToken(account);
 }
 
 function readTelegramToken(account = 'main') {
-  const cfg = readConfig();
-  return cfg?.channels?.telegram?.accounts?.[account]?.botToken || cfg?.channels?.telegram?.botToken || process.env.TELEGRAM_BOT_TOKEN || null;
+  return svcReadTelegramToken(account);
 }
 
 function normalizeTargetId(channelIdOrTarget) {
@@ -138,19 +133,7 @@ function detectOsLocale() {
 }
 
 function resolveLang(explicitLang) {
-  const candidates = [
-    explicitLang,
-    process.env.LOCAL_TTS_LANG,
-    readOpenClawLocaleHint(),
-    process.env.OPENCLAW_LOCALE,
-    detectOsLocale(),
-    'en-us',
-  ];
-  for (const c of candidates) {
-    const n = normalizeToKokoroLang(c);
-    if (n) return n;
-  }
-  return 'en-us';
+  return svcResolveLang({ explicitLang, readConfig, run });
 }
 
 function loadVoiceProfiles() {
@@ -448,3 +431,5 @@ async function sendPrimaryVoice({ channelKind, channelId, account = 'main', oggP
   console.error(e?.message || String(e));
   process.exit(1);
 });
+
+

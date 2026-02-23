@@ -4,7 +4,7 @@ const fs = require('fs');
 const { arg: runtimeArg, run: runtimeRun, exists: runtimeExists } = require('../src/services/runtime');
 const { readConfig: svcReadConfig, readDiscordToken: svcReadDiscordToken, readTelegramToken: svcReadTelegramToken } = require('../src/services/config');
 const { resolveLang: svcResolveLang } = require('../src/services/language');
-const { normalizeTargetId: chNormalizeTargetId, parseTelegramTarget: chParseTelegramTarget, sendTyping: chSendTyping, sendPrimaryVoice: chSendPrimaryVoice } = require('../src/services/channels');
+const { normalizeTargetId: chNormalizeTargetId, parseTelegramTarget: chParseTelegramTarget, sendTyping: chSendTyping, sendPrimaryVoice: chSendPrimaryVoice, sendRegularAudioAttachment: chSendRegularAudioAttachment, sendTextFallback: chSendTextFallback } = require('../src/services/channels');
 const { preflightKokoro: pPreflightKokoro, preflightQwen: pPreflightQwen, synthKokoro: pSynthKokoro, synthQwen: pSynthQwen, encodeToOgg: pEncodeToOgg } = require('../src/services/providers');
 const { getUserPreference: vGetUserPreference, resolveVoiceForBackend: vResolveVoiceForBackend } = require('../src/services/voice');
 
@@ -382,6 +382,7 @@ async function sendPrimaryVoice({ channelKind, channelId, account = 'main', oggP
   console.error(e?.message || String(e));
   process.exit(1);
 });
+
 
 
 

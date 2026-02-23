@@ -64,4 +64,86 @@ async function sendPrimaryVoice({ channelKind, channelId, account='main', oggPat
   throw new Error(`unsupported channel-kind: ${channelKind}`);
 }
 
-module.exports = { normalizeTargetId, parseTelegramTarget, sendTyping, sendPrimaryVoice };
+module.exports = { normalizeTargetId, parseTelegramTarget, sendTyping, sendPrimaryVoice, sendRegularAudioAttachment, sendTextFallback };
+
+async function sendRegularAudioAttachment({ channelKind, channelId, account='main', filePath, readDiscordToken, readTelegramToken }) {
+  const file = fs.readFileSync(filePath);
+
+  if (channelKind === 'discord') {
+    const token = readDiscordToken(account);
+    const ch = normalizeTargetId(channelId);
+
+    const up = await fetch(`https://discord.com/api/v10/channels/${ch}/attachments`, {
+      method: 'POST',
+      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: [{ filename: path.basename(filePath), file_size: file.length, id: '0' }] })
+    });
+    if (!up.ok) throw new Error(`attachment upload-url failed: ${up.status}`);
+    const upj = await up.json();
+    const a = upj.attachments?.[0];
+    if (!a) throw new Error('attachment upload-url missing payload');
+
+    const put = await fetch(a.upload_url, { method: 'PUT', body: file });
+    if (!put.ok) throw new Error(`attachment upload failed: ${put.status}`);
+
+    const msg = await fetch(`https://discord.com/api/v10/channels/${ch}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ attachments: [{ id: '0', filename: path.basename(filePath), uploaded_filename: a.upload_filename }] })
+    });
+    if (!msg.ok) throw new Error(`attachment message failed: ${msg.status}`);
+    return await msg.json();
+  }
+
+  if (channelKind === 'telegram') {
+    const token = readTelegramToken(account);
+    const { chatId, messageThreadId } = parseTelegramTarget(channelId);
+    const form = new FormData();
+    form.append('chat_id', chatId);
+    if (messageThreadId) form.append('message_thread_id', String(messageThreadId));
+    form.append('audio', new Blob([file]), path.basename(filePath));
+
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendAudio`, { method: 'POST', body: form });
+    if (!res.ok) throw new Error(`telegram sendAudio failed: ${res.status}`);
+    const j = await res.json();
+    if (!j.ok) throw new Error(`telegram sendAudio api error: ${JSON.stringify(j)}`);
+    return j;
+  }
+
+  throw new Error(`unsupported channel-kind: ${channelKind}`);
+}
+
+async function sendTextFallback({ channelKind, channelId, account='main', text, readDiscordToken, readTelegramToken }) {
+  if (channelKind === 'discord') {
+    const token = readDiscordToken(account);
+    const ch = normalizeTargetId(channelId);
+    const msg = await fetch(`https://discord.com/api/v10/channels/${ch}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: text })
+    });
+    if (!msg.ok) throw new Error(`text fallback failed: ${msg.status}`);
+    return await msg.json();
+  }
+
+  if (channelKind === 'telegram') {
+    const token = readTelegramToken(account);
+    const { chatId, messageThreadId } = parseTelegramTarget(channelId);
+    const form = new URLSearchParams();
+    form.set('chat_id', chatId);
+    form.set('text', text);
+    if (messageThreadId) form.set('message_thread_id', String(messageThreadId));
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form.toString()
+    });
+    if (!res.ok) throw new Error(`telegram text fallback failed: ${res.status}`);
+    const j = await res.json();
+    if (!j.ok) throw new Error(`telegram sendMessage api error: ${JSON.stringify(j)}`);
+    return j;
+  }
+
+  throw new Error(`unsupported channel-kind: ${channelKind}`);
+}
+

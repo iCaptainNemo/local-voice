@@ -4,6 +4,7 @@ const fs = require('fs');
 const { arg: runtimeArg, run: runtimeRun, exists: runtimeExists } = require('../src/services/runtime');
 const { readConfig: svcReadConfig, readDiscordToken: svcReadDiscordToken, readTelegramToken: svcReadTelegramToken } = require('../src/services/config');
 const { resolveLang: svcResolveLang } = require('../src/services/language');
+const { normalizeTargetId: chNormalizeTargetId, parseTelegramTarget: chParseTelegramTarget, sendTyping: chSendTyping, sendPrimaryVoice: chSendPrimaryVoice } = require('../src/services/channels');
 
 function arg(name, dflt = undefined) {
   return runtimeArg(process.argv, name, dflt);
@@ -62,33 +63,7 @@ function parseTelegramTarget(target) {
 }
 
 async function sendTyping(channelKind, channelId, account = 'main') {
-  try {
-    if (channelKind === 'discord') {
-      const token = readDiscordToken(account);
-      const ch = normalizeTargetId(channelId);
-      if (!token || !ch) return;
-      await fetch(`https://discord.com/api/v10/channels/${ch}/typing`, {
-        method: 'POST',
-        headers: { Authorization: `Bot ${token}` }
-      });
-      return;
-    }
-
-    if (channelKind === 'telegram') {
-      const token = readTelegramToken(account);
-      const { chatId, messageThreadId } = parseTelegramTarget(channelId);
-      if (!token || !chatId) return;
-      const form = new URLSearchParams();
-      form.set('chat_id', chatId);
-      form.set('action', 'record_voice');
-      if (messageThreadId) form.set('message_thread_id', messageThreadId);
-      await fetch(`https://api.telegram.org/bot${token}/sendChatAction`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: form.toString()
-      });
-    }
-  } catch {}
+  return chSendTyping({ channelKind, channelId, account, readDiscordToken, readTelegramToken });
 }
 
 function normalizeToKokoroLang(raw) {
@@ -321,28 +296,7 @@ function synthQwen({ text, wav, voice, lang }) {
 }
 
 async function sendPrimaryVoice({ channelKind, channelId, account = 'main', oggPath }) {
-  if (channelKind === 'discord') {
-    const ch = normalizeTargetId(channelId);
-    run('node', [path.join(__dirname, 'send_discord_voice.js'), '--channel', ch, '--file', oggPath, '--account', account]);
-    return { ok: true, mode: 'discord-voice' };
-  }
-
-  if (channelKind === 'telegram') {
-    const token = readTelegramToken(account);
-    const { chatId, messageThreadId } = parseTelegramTarget(channelId);
-    const file = fs.readFileSync(oggPath);
-    const form = new FormData();
-    form.append('chat_id', chatId);
-    if (messageThreadId) form.append('message_thread_id', String(messageThreadId));
-    form.append('voice', new Blob([file]), path.basename(oggPath));
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendVoice`, { method: 'POST', body: form });
-    if (!res.ok) throw new Error(`telegram sendVoice failed: ${res.status}`);
-    const j = await res.json();
-    if (!j.ok) throw new Error(`telegram sendVoice api error: ${JSON.stringify(j)}`);
-    return { ok: true, mode: 'telegram-voice', result: j.result };
-  }
-
-  throw new Error(`unsupported channel-kind: ${channelKind}`);
+  return chSendPrimaryVoice({ channelKind, channelId, account, oggPath, readDiscordToken, readTelegramToken, run });
 }
 
 (async function main() {
@@ -431,5 +385,6 @@ async function sendPrimaryVoice({ channelKind, channelId, account = 'main', oggP
   console.error(e?.message || String(e));
   process.exit(1);
 });
+
 
 

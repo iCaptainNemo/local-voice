@@ -128,4 +128,4 @@ Please only clone voices when you have clear permission.
 
 ## License
 
-MIT (recommended; add `LICENSE` file if missing).
+MIT

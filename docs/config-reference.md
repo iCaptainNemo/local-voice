@@ -137,3 +137,9 @@
   - `node ./skills/local-voice/scripts/speak.js --text "hello" --backend qwen3 --fallback-backend kokoro --channel <id>`
 - STT only:
   - `python ./skills/local-voice/scripts/transcribe_faster_whisper.py --input ./sample.ogg`
+
+
+## STT default model
+
+- Default is small for better speed on both GPU and CPU-only hosts.
+- Operators can switch to medium by passing --model medium in STT flows or by adjusting wrappers/config.

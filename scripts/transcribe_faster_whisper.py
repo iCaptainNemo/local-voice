@@ -28,7 +28,7 @@ def transcribe_with_model(model, input_path, lang, beam):
 def main() -> int:
     p = argparse.ArgumentParser(description='Transcribe audio with faster-whisper')
     p.add_argument('--input', required=True)
-    p.add_argument('--model', default='medium')
+    p.add_argument('--model', default='small')
     p.add_argument('--lang', default=None)
     p.add_argument('--beam', type=int, default=5)
     args = p.parse_args()
@@ -59,3 +59,4 @@ def main() -> int:
 
 if __name__ == '__main__':
     raise SystemExit(main())
+

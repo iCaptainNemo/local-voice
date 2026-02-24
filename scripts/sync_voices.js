@@ -4,7 +4,7 @@ const path = require('path');
 
 const dataDir = process.env.LOCAL_QWEN_DATA_DIR || path.join(process.env.USERPROFILE || process.env.HOME || '.', 'tts');
 const voicesPath = path.join(dataDir, 'voices.json');
-const statePath = path.join(__dirname, '..', 'references', 'voices-state.json');
+const statePath = path.join(__dirname, '..', 'data', 'voices-state.json');
 
 function readJson(p, fallback) {
   try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return fallback; }
@@ -47,3 +47,4 @@ function extractVoiceNames(voicesJson) {
 
   console.log(JSON.stringify({ ok: true, dataDir, voicesPath, total: current.length, added, removed, voices: current }, null, 2));
 })();
+

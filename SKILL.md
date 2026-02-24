@@ -26,7 +26,7 @@ Use this skill for a unified local voice stack: inbound STT with faster-whisper 
 
 4. **Persistent voice preferences**
    - `scripts/voice_preferences.js` store per-user/default voice + backend selections
-   - selections persist in `references/voice-preferences.json` (not chat context)
+   - selections persist in `data/voice-preferences.json` (not chat context)
 
 ## Default workflow policy
 
@@ -69,7 +69,7 @@ python ./skills/local-voice/scripts/transcribe_faster_whisper.py --input ./sampl
 
 ## Voice profile mapping
 
-- Configure default voices in `references/voice-profiles.json`.
+- Configure default voices in `data/voice-profiles.json`.
 - `speak.js` maps language -> voice automatically unless `--voice` is passed.
 
 ## Smoke test
@@ -80,7 +80,7 @@ node ./skills/local-voice/scripts/voice_smoke_test.js
 
 ## Voice cloning support (Qwen3)
 
-- See `references/voice-cloning.md` for the consent-first flow.
+- See `docs/voice-cloning.md` for the consent-first flow.
 - Use `scripts/clone_voice.js` to create a reusable qwen voice profile from a sample.
 - Require explicit permission confirmation before cloning any voice.
 
@@ -88,5 +88,5 @@ node ./skills/local-voice/scripts/voice_smoke_test.js
 
 - Keep this skill unpublished until portability hardening is complete.
 - Prefer env-var paths instead of hardcoded absolute paths.
-- For day-to-day ops, use `references/operator-quick-commands.md`.
-- Use `references/requirements.md`, `references/config-reference.md`, `references/troubleshooting.md`, `references/test-plan.md`, and `references/voice-cloning.md` during setup and validation.
+- For day-to-day ops, use `docs/operator-quick-commands.md`.
+- Use `docs/requirements.md`, `docs/config-reference.md`, `docs/troubleshooting.md`, `docs/test-plan.md`, and `docs/voice-cloning.md` during setup and validation.

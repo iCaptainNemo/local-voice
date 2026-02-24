@@ -70,17 +70,17 @@
 ## Voice resolution order
 
 1. `--voice`
-2. Per-user persistent preference (`references/voice-preferences.json`, via `--user <id>`)
-3. Default persistent preference (`references/voice-preferences.json`)
-4. `references/voice-profiles.json` language mapping
-5. `references/voice-profiles.json` default voice
+2. Per-user persistent preference (`data/voice-preferences.json`, via `--user <id>`)
+3. Default persistent preference (`data/voice-preferences.json`)
+4. `data/voice-profiles.json` language mapping
+5. `data/voice-profiles.json` default voice
 6. hard fallback `af_sarah`
 
 ## Backend resolution order
 
 1. `--backend`
-2. Per-user persistent preference (`references/voice-preferences.json`, via `--user <id>`)
-3. Default persistent preference (`references/voice-preferences.json`)
+2. Per-user persistent preference (`data/voice-preferences.json`, via `--user <id>`)
+3. Default persistent preference (`data/voice-preferences.json`)
 4. `LOCAL_TTS_BACKEND`
 5. fallback `kokoro`
 

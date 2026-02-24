@@ -4,7 +4,7 @@ const path = require('path');
 
 const qwenDataDir = process.env.LOCAL_QWEN_DATA_DIR || path.join(process.env.USERPROFILE || process.env.HOME || '.', 'tts');
 const qwenVoicesPath = path.join(qwenDataDir, 'voices.json');
-const kokoroProfilesPath = path.join(__dirname, '..', 'references', 'voice-profiles.json');
+const kokoroProfilesPath = path.join(__dirname, '..', 'data', 'voice-profiles.json');
 
 let qwen = [];
 try {
@@ -19,3 +19,4 @@ try {
 } catch {}
 
 console.log(JSON.stringify({ ok: true, kokoro, qwen3: qwen.sort() }, null, 2));
+

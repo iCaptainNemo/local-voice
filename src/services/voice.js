@@ -2,13 +2,13 @@ const fs = require('fs');
 const path = require('path');
 
 function loadVoiceProfiles({ exists }) {
-  const p = path.join(__dirname, '..', '..', 'references', 'voice-profiles.json');
+  const p = path.join(__dirname, '..', '..', 'data', 'voice-profiles.json');
   if (!exists(p)) return { default: 'af_sarah', byLanguage: { 'en-us': 'af_sarah', es: 'ef_dora' } };
   return JSON.parse(fs.readFileSync(p, 'utf8'));
 }
 
 function loadVoicePrefs({ exists }) {
-  const p = process.env.LOCAL_VOICE_PREFS_PATH || path.join(__dirname, '..', '..', 'references', 'voice-preferences.json');
+  const p = process.env.LOCAL_VOICE_PREFS_PATH || path.join(__dirname, '..', '..', 'data', 'voice-preferences.json');
   if (!exists(p)) return { default: { voice: null, backend: 'kokoro' }, users: {} };
   try { return JSON.parse(fs.readFileSync(p, 'utf8')); }
   catch { return { default: { voice: null, backend: 'kokoro' }, users: {} }; }
@@ -40,3 +40,4 @@ module.exports = {
   resolveVoice,
   resolveVoiceForBackend,
 };
+

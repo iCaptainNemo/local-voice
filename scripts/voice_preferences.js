@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const prefsPath = process.env.LOCAL_VOICE_PREFS_PATH || path.join(__dirname, '..', 'references', 'voice-preferences.json');
+const prefsPath = process.env.LOCAL_VOICE_PREFS_PATH || path.join(__dirname, '..', 'data', 'voice-preferences.json');
 
 function readPrefs() {
   try { return JSON.parse(fs.readFileSync(prefsPath, 'utf8')); }
@@ -48,3 +48,4 @@ if (cmd === 'list') {
 
 console.error('Usage: voice_preferences.js <get|set|list> [--user <id>] [--voice <name>] [--backend <kokoro|qwen3>]');
 process.exit(1);
+

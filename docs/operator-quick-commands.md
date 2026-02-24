@@ -67,4 +67,4 @@ node ./skills/local-voice/scripts/voice_smoke_test.js
   - `LOCAL_SOX_DIR`
   - `LOCAL_QWEN_VOICE`
 - Persistent preferences are stored in:
-  - `./skills/local-voice/references/voice-preferences.json`
+  - `./data/voice-preferences.json`

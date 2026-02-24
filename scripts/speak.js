@@ -1,13 +1,29 @@
 #!/usr/bin/env node
 const path = require('path');
 const fs = require('fs');
+
 const { arg: runtimeArg, run: runtimeRun, exists: runtimeExists } = require('../src/services/runtime');
 const { readConfig: svcReadConfig, readDiscordToken: svcReadDiscordToken, readTelegramToken: svcReadTelegramToken } = require('../src/services/config');
 const { resolveLang: svcResolveLang } = require('../src/services/language');
-const { normalizeTargetId: chNormalizeTargetId, parseTelegramTarget: chParseTelegramTarget, sendTyping: chSendTyping, sendPrimaryVoice: chSendPrimaryVoice, sendRegularAudioAttachment: chSendRegularAudioAttachment, sendTextFallback: chSendTextFallback } = require('../src/services/channels');
-const { preflightKokoro: pPreflightKokoro, preflightQwen: pPreflightQwen, synthKokoro: pSynthKokoro, synthQwen: pSynthQwen, encodeToOgg: pEncodeToOgg } = require('../src/services/providers');
+const {
+  normalizeTargetId: chNormalizeTargetId,
+  sendTyping: chSendTyping,
+  sendPrimaryVoice: chSendPrimaryVoice,
+  sendRegularAudioAttachment: chSendRegularAudioAttachment,
+  sendTextFallback: chSendTextFallback,
+} = require('../src/services/channels');
+const {
+  preflightKokoro: pPreflightKokoro,
+  preflightQwen: pPreflightQwen,
+  synthKokoro: pSynthKokoro,
+  synthQwen: pSynthQwen,
+  encodeToOgg: pEncodeToOgg,
+} = require('../src/services/providers');
+const {
+  getUserPreference: vGetUserPreference,
+  resolveVoiceForBackend: vResolveVoiceForBackend,
+} = require('../src/services/voice');
 const { preflightCommon: pfCommon } = require('../src/services/preflight');
-const { getUserPreference: vGetUserPreference, resolveVoiceForBackend: vResolveVoiceForBackend } = require('../src/services/voice');
 
 function arg(name, dflt = undefined) {
   return runtimeArg(process.argv, name, dflt);
@@ -19,22 +35,6 @@ function run(cmd, args, opts = {}) {
 
 function exists(filePath) {
   return runtimeExists(filePath);
-}
-
-function pickPython() {
-  return process.env.LOCAL_TTS_PYTHON || 'python';
-}
-
-function pickFfmpeg() {
-  return process.env.LOCAL_TTS_FFMPEG || 'ffmpeg';
-}
-
-function pickQwenCmd() {
-  return process.env.LOCAL_QWEN_TTS_CMD || 'tts';
-}
-
-function pickSoxDir() {
-  return process.env.LOCAL_SOX_DIR || 'C:/Users/Michaelangelo/AppData/Local/Microsoft/WinGet/Packages/ChrisBagwell.SoX_Microsoft.Winget.Source_8wekyb3d8bbwe/sox-14.4.2';
 }
 
 function readConfig() {
@@ -50,95 +50,23 @@ function readTelegramToken(account = 'main') {
 }
 
 function normalizeTargetId(channelIdOrTarget) {
-  const raw = String(channelIdOrTarget || '').trim();
-  if (!raw) return '';
-  if (raw.startsWith('channel:')) return raw.slice('channel:'.length);
-  return raw;
-}
-
-function parseTelegramTarget(target) {
-  const raw = normalizeTargetId(target);
-  const topicMatch = raw.match(/^(.*?):topic:(\d+)$/);
-  if (topicMatch) {
-    return { chatId: topicMatch[1], messageThreadId: topicMatch[2] };
-  }
-  return { chatId: raw, messageThreadId: null };
-}
-
-async function sendTyping(channelKind, channelId, account = 'main') {
-  return chSendTyping({ channelKind, channelId, account, readDiscordToken, readTelegramToken });
-}
-
-function normalizeToKokoroLang(raw) {
-  if (!raw) return null;
-  const v = String(raw).trim().replace('_', '-').toLowerCase();
-  if (v.startsWith('es')) return 'es';
-  if (v.startsWith('en')) return 'en-us';
-  return null;
-}
-
-
-
-function readOpenClawLocaleHint() {
-  try {
-    const cfg = readConfig();
-    return cfg?.messages?.tts?.edge?.lang || cfg?.messages?.tts?.elevenlabs?.languageCode || null;
-  } catch {
-    return null;
-  }
-}
-
-function detectOsLocale() {
-  try {
-    if (process.platform === 'win32') {
-      const r = run('powershell', ['-NoProfile', '-Command', '[System.Globalization.CultureInfo]::CurrentUICulture.Name'], { quiet: true });
-      if (r.stdout?.trim()) return r.stdout.trim();
-    }
-    if (process.platform === 'darwin') {
-      const r = run('defaults', ['read', '-g', 'AppleLocale'], { quiet: true });
-      if (r.stdout?.trim()) return r.stdout.trim();
-    }
-    return process.env.LC_ALL || process.env.LANG || Intl.DateTimeFormat().resolvedOptions().locale || os.locale?.() || null;
-  } catch {
-    return process.env.LC_ALL || process.env.LANG || null;
-  }
+  return chNormalizeTargetId(channelIdOrTarget);
 }
 
 function resolveLang(explicitLang) {
   return svcResolveLang({ explicitLang, readConfig, run });
 }
 
-function loadVoiceProfiles() {
-  const p = path.join(__dirname, '..', 'references', 'voice-profiles.json');
-  if (!exists(p)) return { default: 'af_sarah', byLanguage: { 'en-us': 'af_sarah', es: 'ef_dora' } };
-  return JSON.parse(fs.readFileSync(p, 'utf8'));
-}
-
-function loadVoicePrefs() {
-  const p = process.env.LOCAL_VOICE_PREFS_PATH || path.join(__dirname, '..', 'references', 'voice-preferences.json');
-  if (!exists(p)) return { default: { voice: null, backend: 'kokoro' }, users: {} };
-  try { return JSON.parse(fs.readFileSync(p, 'utf8')); }
-  catch { return { default: { voice: null, backend: 'kokoro' }, users: {} }; }
-}
-
 function getUserPreference(userId) {
-  const prefs = loadVoicePrefs();
-  if (userId && prefs.users && prefs.users[userId]) return prefs.users[userId];
-  return prefs.default || {};
-}
-
-function resolveVoice(explicitVoice, lang) {
-  if (explicitVoice) return explicitVoice;
-  const map = loadVoiceProfiles();
-  return map?.byLanguage?.[lang] || map?.default || 'af_sarah';
+  return vGetUserPreference(userId, { exists });
 }
 
 function resolveVoiceForBackend(backend, explicitVoice, lang) {
-  if (backend === 'qwen3' || backend === 'qwen') {
-    // Qwen voices are installation-specific; prefer explicit or configured default.
-    return explicitVoice || process.env.LOCAL_QWEN_VOICE || 'default';
-  }
-  return resolveVoice(explicitVoice, lang);
+  return vResolveVoiceForBackend(backend, explicitVoice, lang, { exists });
+}
+
+async function sendTyping(channelKind, channelId, account = 'main') {
+  return chSendTyping({ channelKind, channelId, account, readDiscordToken, readTelegramToken });
 }
 
 function preflightCommon({ channelKind, channel, account }) {
@@ -146,146 +74,41 @@ function preflightCommon({ channelKind, channel, account }) {
 }
 
 function preflightKokoro() {
-  const issues = [];
-  const python = pickPython();
-  const model = process.env.LOCAL_TTS_KOKORO_MODEL || 'C:/Users/Michaelangelo/voice/tts-kokoro/kokoro-v1.0.onnx';
-  const voices = process.env.LOCAL_TTS_KOKORO_VOICES || 'C:/Users/Michaelangelo/voice/tts-kokoro/voices-v1.0.bin';
-  const ffmpeg = pickFfmpeg();
-  try { run(python, ['--version'], { quiet: true }); } catch { issues.push(`python not runnable: ${python}`); }
-  try { run(ffmpeg, ['-version'], { quiet: true }); } catch { issues.push(`ffmpeg not runnable: ${ffmpeg}`); }
-  if (!exists(model)) issues.push(`missing kokoro model: ${model}`);
-  if (!exists(voices)) issues.push(`missing kokoro voices: ${voices}`);
-  if (issues.length) throw new Error(`kokoro preflight failed:\n- ${issues.join('\n- ')}`);
+  return pPreflightKokoro({ run, exists });
 }
 
 function preflightQwen() {
-  const issues = [];
-  const qwen = pickQwenCmd();
-  const ffmpeg = pickFfmpeg();
-  const soxDir = pickSoxDir();
-  const env = { ...process.env, PATH: `${soxDir};${process.env.PATH || ''}` };
-  try { run(qwen, ['--version'], { quiet: true, env }); } catch { issues.push(`qwen tts command not runnable: ${qwen}`); }
-  try { run(ffmpeg, ['-version'], { quiet: true }); } catch { issues.push(`ffmpeg not runnable: ${ffmpeg}`); }
-  if (!exists(path.join(soxDir, 'sox.exe'))) issues.push(`sox not found in expected dir: ${soxDir}`);
-  // best-effort voice registry sync (non-fatal)
+  // best-effort voice registry sync before qwen checks
   try { run('node', [path.join(__dirname, 'sync_voices.js')], { quiet: true }); } catch {}
-  if (issues.length) throw new Error(`qwen preflight failed:\n- ${issues.join('\n- ')}`);
-}
-
-async function sendRegularAudioAttachment({ channelKind, channelId, account = 'main', filePath }) {
-  const file = fs.readFileSync(filePath);
-
-  if (channelKind === 'discord') {
-    const token = readDiscordToken(account);
-    const ch = normalizeTargetId(channelId);
-
-    const up = await fetch(`https://discord.com/api/v10/channels/${ch}/attachments`, {
-      method: 'POST',
-      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ files: [{ filename: path.basename(filePath), file_size: file.length, id: '0' }] })
-    });
-    if (!up.ok) throw new Error(`attachment upload-url failed: ${up.status}`);
-    const upj = await up.json();
-    const a = upj.attachments?.[0];
-    if (!a) throw new Error('attachment upload-url missing payload');
-
-    const put = await fetch(a.upload_url, { method: 'PUT', body: file });
-    if (!put.ok) throw new Error(`attachment upload failed: ${put.status}`);
-
-    const msg = await fetch(`https://discord.com/api/v10/channels/${ch}/messages`, {
-      method: 'POST',
-      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ attachments: [{ id: '0', filename: path.basename(filePath), uploaded_filename: a.upload_filename }] })
-    });
-    if (!msg.ok) throw new Error(`attachment message failed: ${msg.status}`);
-    return await msg.json();
-  }
-
-  if (channelKind === 'telegram') {
-    const token = readTelegramToken(account);
-    const { chatId, messageThreadId } = parseTelegramTarget(channelId);
-    const form = new FormData();
-    form.append('chat_id', chatId);
-    if (messageThreadId) form.append('message_thread_id', String(messageThreadId));
-    form.append('audio', new Blob([file]), path.basename(filePath));
-
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendAudio`, { method: 'POST', body: form });
-    if (!res.ok) throw new Error(`telegram sendAudio failed: ${res.status}`);
-    const j = await res.json();
-    if (!j.ok) throw new Error(`telegram sendAudio api error: ${JSON.stringify(j)}`);
-    return j;
-  }
-
-  throw new Error(`unsupported channel-kind: ${channelKind}`);
-}
-
-async function sendTextFallback({ channelKind, channelId, account = 'main', text }) {
-  if (channelKind === 'discord') {
-    const token = readDiscordToken(account);
-    const ch = normalizeTargetId(channelId);
-    const msg = await fetch(`https://discord.com/api/v10/channels/${ch}/messages`, {
-      method: 'POST',
-      headers: { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: text })
-    });
-    if (!msg.ok) throw new Error(`text fallback failed: ${msg.status}`);
-    return await msg.json();
-  }
-
-  if (channelKind === 'telegram') {
-    const token = readTelegramToken(account);
-    const { chatId, messageThreadId } = parseTelegramTarget(channelId);
-    const form = new URLSearchParams();
-    form.set('chat_id', chatId);
-    form.set('text', text);
-    if (messageThreadId) form.set('message_thread_id', String(messageThreadId));
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: form.toString()
-    });
-    if (!res.ok) throw new Error(`telegram text fallback failed: ${res.status}`);
-    const j = await res.json();
-    if (!j.ok) throw new Error(`telegram sendMessage api error: ${JSON.stringify(j)}`);
-    return j;
-  }
-
-  throw new Error(`unsupported channel-kind: ${channelKind}`);
+  return pPreflightQwen({ run, exists });
 }
 
 function synthKokoro({ text, wav, voice, lang }) {
-  const python = pickPython();
-  const model = process.env.LOCAL_TTS_KOKORO_MODEL || 'C:/Users/Michaelangelo/voice/tts-kokoro/kokoro-v1.0.onnx';
-  const voices = process.env.LOCAL_TTS_KOKORO_VOICES || 'C:/Users/Michaelangelo/voice/tts-kokoro/voices-v1.0.bin';
-  run(python, [
-    path.join(__dirname, 'synthesize_kokoro.py'),
-    '--text', text,
-    '--out', wav,
-    '--voice', voice,
-    '--lang', lang,
-    '--model', model,
-    '--voices', voices,
-  ]);
+  return pSynthKokoro({ text, wav, voice, lang, run });
 }
 
 function synthQwen({ text, wav, voice, lang }) {
-  const qwen = pickQwenCmd();
-  const soxDir = pickSoxDir();
-  const env = { ...process.env, PATH: `${soxDir};${process.env.PATH || ''}` };
-  const qLang = normalizeToQwenLang(lang) || 'en';
-  const args = ['generate', text, '--output', wav, '--language', qLang];
-  if (voice) args.push('--voice', voice);
-  run(qwen, args, { env });
+  return pSynthQwen({ text, wav, voice, lang, run });
 }
 
 async function sendPrimaryVoice({ channelKind, channelId, account = 'main', oggPath }) {
   return chSendPrimaryVoice({ channelKind, channelId, account, oggPath, readDiscordToken, readTelegramToken, run });
 }
 
+async function sendRegularAudioAttachment({ channelKind, channelId, account = 'main', filePath }) {
+  return chSendRegularAudioAttachment({ channelKind, channelId, account, filePath, readDiscordToken, readTelegramToken });
+}
+
+async function sendTextFallback({ channelKind, channelId, account = 'main', text }) {
+  return chSendTextFallback({ channelKind, channelId, account, text, readDiscordToken, readTelegramToken });
+}
+
 (async function main() {
   const text = arg('text');
   const channelKind = (arg('channel-kind', process.env.LOCAL_VOICE_CHANNEL || 'discord') || 'discord').toLowerCase();
-  const defaultTarget = channelKind === 'telegram' ? (process.env.TELEGRAM_TARGET_DEFAULT || '') : (process.env.DISCORD_TARGET_DEFAULT || '1473108262026219612');
+  const defaultTarget = channelKind === 'telegram'
+    ? (process.env.TELEGRAM_TARGET_DEFAULT || '')
+    : (process.env.DISCORD_TARGET_DEFAULT || '1473108262026219612');
   const channel = arg('channel', defaultTarget);
   const lang = resolveLang(arg('lang'));
   const account = arg('account', 'main');
@@ -308,18 +131,21 @@ async function sendPrimaryVoice({ channelKind, channelId, account = 'main', oggP
   const synthWithBackend = async (selectedBackend) => {
     const preferred = arg('voice') || (((selectedBackend === 'qwen3' || selectedBackend === 'qwen') && pref.voice) ? pref.voice : undefined);
     const voice = resolveVoiceForBackend(selectedBackend, preferred, lang);
+
     if (selectedBackend === 'kokoro') {
       preflightKokoro();
       await sendTyping(channelKind, channel, account);
       synthKokoro({ text, wav, voice, lang });
       return;
     }
+
     if (selectedBackend === 'qwen3' || selectedBackend === 'qwen') {
       preflightQwen();
       await sendTyping(channelKind, channel, account);
       synthQwen({ text, wav, voice, lang });
       return;
     }
+
     throw new Error(`unsupported backend: ${selectedBackend}`);
   };
 
@@ -369,11 +195,3 @@ async function sendPrimaryVoice({ channelKind, channelId, account = 'main', oggP
   console.error(e?.message || String(e));
   process.exit(1);
 });
-
-
-
-
-
-
-
-

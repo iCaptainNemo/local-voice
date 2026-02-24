@@ -35,7 +35,7 @@ node ./skills/local-voice/scripts/clone_voice.js \
   --channel <discord-channel-id>
 ```
 
-During cloning, the script sends Discord typing and a "Please hold…" progress message (best effort).
+During cloning, the script sends Discord typing and a "Please holdâ€¦" progress message (best effort).
 
 4. Agent confirms profile creation and how to use:
 
@@ -48,3 +48,11 @@ node ./skills/local-voice/scripts/speak.js --text "hello" --backend qwen3 --voic
 - Voice profiles are stored by `ttscli` on host (not workspace-only), typically under the user data dir.
 - If transcription quality is poor, ask user to resend a cleaner sample.
 - If user asks whether cloning is possible, provide this flow and consent requirement.
+
+### Optional: provide exact reference text
+
+If you already have the exact quote/transcript, pass it directly (recommended):
+
+```bash
+node ./scripts/clone_voice.js --input ./sample.ogg --voice my-voice --language en --reference-text "Your exact quote here" --consent yes --channel <discordChannelId>
+```

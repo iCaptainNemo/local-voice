@@ -15,12 +15,20 @@ Local-first voice I/O stack for OpenClaw.
 
 ## Installation
 
-Plugin packaging/install steps are being finalized.
+### Plugin install (recommended path)
 
-Until plugin install is finalized, this repo includes developer/operator scripts to run and validate behavior directly.
+From a local checkout:
+
+```bash
+openclaw plugins install -l <path-to-local-voice-repo>
+openclaw gateway restart
+openclaw plugins list
+openclaw plugins doctor
+```
+
+From an archive (`.zip/.tgz/.tar.gz`) or npm package is also supported by OpenClaw, but local-link install is easiest during development.
 
 See: `docs/requirements.md` and `docs/config-reference.md`
-
 ---
 
 ## Developer quick test

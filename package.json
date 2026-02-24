@@ -1,0 +1,11 @@
+{
+  "name": "local-voice",
+  "version": "0.1.0-dev",
+  "private": true,
+  "description": "Local voice I/O plugin for OpenClaw",
+  "main": "src/plugin/index.js",
+  "type": "commonjs",
+  "openclaw": {
+    "extensions": ["./src/plugin/index.js"]
+  }
+}

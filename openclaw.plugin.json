@@ -1,0 +1,36 @@
+{
+  "id": "local-voice",
+  "name": "Local Voice",
+  "description": "Local-first voice IO plugin (STT/TTS, channel adapters, preferences).",
+  "version": "0.1.0-dev",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": { "type": "boolean", "default": true },
+      "channel": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "defaultKind": { "type": "string", "enum": ["discord", "telegram"], "default": "discord" }
+        }
+      },
+      "provider": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "primary": { "type": "string", "enum": ["kokoro", "qwen3"], "default": "kokoro" },
+          "fallback": { "type": "string", "enum": ["none", "kokoro", "qwen3"], "default": "none" }
+        }
+      },
+      "typing": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sttPresence": { "type": "boolean", "default": true },
+          "refreshSeconds": { "type": "integer", "minimum": 1, "maximum": 10, "default": 3 }
+        }
+      }
+    }
+  }
+}

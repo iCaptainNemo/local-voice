@@ -62,6 +62,10 @@ Only clone voices with explicit permission.
 
 ---
 
+## Runtime data files
+
+The `data/` JSON files are auto-created on first run and are intentionally gitignored.
+
 ## Documentation
 
 - `docs/config-reference.md`

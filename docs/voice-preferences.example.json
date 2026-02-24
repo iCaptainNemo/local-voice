@@ -1,0 +1,12 @@
+﻿{
+  "default": {
+    "voice": null,
+    "backend": "kokoro"
+  },
+  "users": {
+    "<user-id>": {
+      "voice": "mike-main",
+      "backend": "qwen3"
+    }
+  }
+}

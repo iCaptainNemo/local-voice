@@ -24,6 +24,7 @@ const {
   resolveVoiceForBackend: vResolveVoiceForBackend,
 } = require('../src/services/voice');
 const { preflightCommon: pfCommon } = require('../src/services/preflight');
+const { initDataFiles } = require('../src/services/data-init');
 
 function arg(name, dflt = undefined) {
   return runtimeArg(process.argv, name, dflt);
@@ -104,6 +105,7 @@ async function sendTextFallback({ channelKind, channelId, account = 'main', text
 }
 
 (async function main() {
+  initDataFiles();
   const text = arg('text');
   const channelKind = (arg('channel-kind', process.env.LOCAL_VOICE_CHANNEL || 'discord') || 'discord').toLowerCase();
   const defaultTarget = channelKind === 'telegram'

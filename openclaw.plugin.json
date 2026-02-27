@@ -3,6 +3,7 @@
   "name": "Local Voice",
   "description": "Local-first voice IO plugin (STT/TTS, channel adapters, preferences).",
   "version": "0.1.0-dev",
+  "skills": ["./skills"],
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

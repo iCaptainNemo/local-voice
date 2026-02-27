@@ -50,6 +50,7 @@ function synthKokoro({ text, wav, voice, lang, run }) {
     '--lang', lang,
     '--model', model,
     '--voices', voices,
+    '--compute', (process.env.LOCAL_TTS_COMPUTE || 'auto'),
   ]);
 }
 
@@ -58,7 +59,8 @@ function synthQwen({ text, wav, voice, lang, run }) {
   const soxDir = pickSoxDir();
   const env = { ...process.env, PATH: `${soxDir};${process.env.PATH || ''}` };
   const qLang = normalizeToQwenLang(lang) || 'en';
-  const args = ['generate', text, '--output', wav, '--language', qLang];
+  const qModel = process.env.LOCAL_QWEN_MODEL || '0.6B';
+  const args = ['generate', text, '--output', wav, '--language', qLang, '--model', qModel];
   if (voice) args.push('--voice', voice);
   run(qwen, args, { env });
 }
@@ -75,3 +77,4 @@ module.exports = {
   synthQwen,
   encodeToOgg,
 };
+

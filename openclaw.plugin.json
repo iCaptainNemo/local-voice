@@ -1,7 +1,6 @@
 {
   "id": "local-voice",
   "name": "Local Voice",
-  "name": "Local Voice",
   "description": "Local-first voice IO plugin (STT/TTS, channel adapters, preferences).",
   "version": "0.1.0-dev",
   "configSchema": {
